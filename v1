@@ -1,97 +1,198 @@
 import tkinter as tk
-from tkinter import messagebox, simpledialog, font
+from tkinter import messagebox, simpledialog, font, Canvas
 import random
 import webbrowser
 
-# Define a list of locations with country/state names and coordinates
-locations = [
+# Locatiile dupa dificultate
+easy_locations = [
     {"name": "Paris, France", "country": "France", "coordinates": (48.8566, 2.3522)},
     {"name": "New York, USA", "country": "USA", "coordinates": (40.7128, -74.0060)},
     {"name": "Tokyo, Japan", "country": "Japan", "coordinates": (35.6895, 139.6917)},
     {"name": "Cairo, Egypt", "country": "Egypt", "coordinates": (30.0444, 31.2357)},
     {"name": "Sydney, Australia", "country": "Australia", "coordinates": (-33.8688, 151.2093)},
+    {"name": "Toronto, Canada", "country": "Canada", "coordinates": (43.65107, -79.347015)},
+    {"name": "Rome, Italy", "country": "Italy", "coordinates": (41.9028, 12.4964)},
+    {"name": "Berlin, Germany", "country": "Germany", "coordinates": (52.52, 13.405)},
+    {"name": "Athens, Greece", "country": "Greece", "coordinates": (37.9838, 23.7275)},
+    {"name": "Bangkok, Thailand", "country": "Thailand", "coordinates": (13.7563, 100.5018)},
+]
+
+medium_locations = [
     {"name": "Rio de Janeiro, Brazil", "country": "Brazil", "coordinates": (-22.9068, -43.1729)},
     {"name": "Moscow, Russia", "country": "Russia", "coordinates": (55.7558, 37.6176)},
     {"name": "Cape Town, South Africa", "country": "South Africa", "coordinates": (-33.9249, 18.4241)},
     {"name": "London, UK", "country": "UK", "coordinates": (51.5074, -0.1278)},
     {"name": "Beijing, China", "country": "China", "coordinates": (39.9042, 116.4074)},
-    {"name": "Mumbai, India", "country": "India", "coordinates": (19.0760, 72.8777)},
-    {"name": "Dubai, UAE", "country": "UAE", "coordinates": (25.2048, 55.2708)},
-    {"name": "Rome, Italy", "country": "Italy", "coordinates": (41.9028, 12.4964)},
-    {"name": "Toronto, Canada", "country": "Canada", "coordinates": (43.6532, -79.3832)},
     {"name": "Mexico City, Mexico", "country": "Mexico", "coordinates": (19.4326, -99.1332)},
+    {"name": "Seoul, South Korea", "country": "South Korea", "coordinates": (37.5665, 126.9780)},
+    {"name": "Istanbul, Turkey", "country": "Turkey", "coordinates": (41.0082, 28.9784)},
+    {"name": "Dubai, UAE", "country": "UAE", "coordinates": (25.276987, 55.296249)},
+    {"name": "Madrid, Spain", "country": "Spain", "coordinates": (40.4168, -3.7038)},
 ]
 
-# Main game class
+hard_locations = [
+    {"name": "Nairobi, Kenya", "country": "Kenya", "coordinates": (-1.286389, 36.817223)},
+    {"name": "Ulaanbaatar, Mongolia", "country": "Mongolia", "coordinates": (47.8864, 106.9057)},
+    {"name": "Thimphu, Bhutan", "country": "Bhutan", "coordinates": (27.4728, 89.639)},
+    {"name": "Lima, Peru", "country": "Peru", "coordinates": (-12.0464, -77.0428)},
+    {"name": "Bogotá, Colombia", "country": "Colombia", "coordinates": (4.7110, -74.0721)},
+    {"name": "Suva, Fiji", "country": "Fiji", "coordinates": (-18.1248, 178.4501)},
+    {"name": "Hanoi, Vietnam", "country": "Vietnam", "coordinates": (21.0285, 105.8542)},
+    {"name": "Kathmandu, Nepal", "country": "Nepal", "coordinates": (27.7172, 85.3240)},
+    {"name": "Reykjavik, Iceland", "country": "Iceland", "coordinates": (64.1355, -21.8954)},
+    {"name": "Caracas, Venezuela", "country": "Venezuela", "coordinates": (10.4806, -66.9036)},
+]
+
+
+# pagina principala
 class LocationGame:
     def __init__(self, root):
         self.root = root
         self.root.title("🌍 Location Guessing Game")
-        self.root.geometry("500x400")
-        self.root.configure(bg="#f5f5f5")
+        self.root.geometry("500x450")
         
-        # Custom fonts and colors
+        # Game attributes
+        self.score = 0
+        self.rank = 1
+        self.streak = 0
+
+        # Color and style configuration
+        self.rank_colors = {1: "#ffeb3b", 2: "#4caf50", 3: "#f44336"}  # Bright colors for ranks
+        self.set_background_gradient()  # Set the gradient background
+        self.shadow_color = "#888888"  # Shadow color for 3D effect
+
+        # Custom fonts
         self.title_font = font.Font(family="Helvetica", size=18, weight="bold")
         self.button_font = font.Font(family="Helvetica", size=12, weight="bold")
         
-        # Title label
-        self.title_label = tk.Label(
-            root, text="Guess the Location!", font=self.title_font,
-            fg="#2e4053", bg="#f5f5f5"
-        )
-        self.title_label.pack(pady=(30, 20))
+        # Title with shadow
+        self.create_label_with_shadow("Guess the Location!", self.title_font, y_offset=30, color="#2e4053")
 
-        # Instruction label
-        self.instruction_label = tk.Label(
-            root, text="Explore and guess the country/state!", font=("Helvetica", 10),
-            fg="#2e4053", bg="#f5f5f5"
-        )
-        self.instruction_label.pack()
+        # Instructions
+        self.instruction_label = tk.Label(root, text="Explore and guess the country/state!", font=("Helvetica", 10), fg="#2e4053", bg="#ffeb3b")
+        self.instruction_label.pack(pady=10)
 
-        # Start button with styling
-        self.start_button = tk.Button(
-            root, text="Start Game", font=self.button_font, command=self.start_game,
-            bg="#3498db", fg="white", activebackground="#2980b9", activeforeground="white",
-            bd=0, relief="ridge", width=15, height=2, cursor="hand2"
-        )
-        self.start_button.pack(pady=20)
+        # Start button with 3D effect
+        self.start_button = tk.Button(root, text="Start Game", font=self.button_font, command=self.start_game,
+                                      bg="#3498db", fg="white", activebackground="#2980b9", activeforeground="white", bd=2,
+                                      relief="raised", width=15, height=2, cursor="hand2")
+        self.start_button.place(x=175, y=150)  # Center the button
 
-        # Feedback label for guess results
-        self.feedback_label = tk.Label(
-            root, text="", font=("Helvetica", 12), fg="#1e8449", bg="#f5f5f5"
-        )
+        # Score and Rank labels with shadow
+        self.score_label = self.create_label_with_shadow(f"Score: {self.score}", font=("Helvetica", 12), y_offset=230)
+        self.rank_label = self.create_label_with_shadow(f"Rank: {self.rank}", font=("Helvetica", 12), y_offset=260)
+
+        # Streak label with color animation and 3D effect
+        self.streak_label_shadow, self.streak_label = self.create_colorful_streak_label()
+
+        # Feedback label
+        self.feedback_label = tk.Label(root, text="", font=("Helvetica", 12), fg="#1e8449", bg=self.rank_colors[self.rank])
         self.feedback_label.pack(pady=10)
 
-        # Styling adjustments for rounded corners (customizing border effects)
-        self.start_button.bind("<Enter>", self.on_button_hover)
-        self.start_button.bind("<Leave>", self.on_button_leave)
+        # Streak message box (for streak bonus)
+        self.streak_message_box = tk.Label(root, text="", font=("Helvetica", 12, "bold"), fg="white", bg="#3498db", width=30, height=2)
+        self.streak_message_box.place(x=100, y=380)
+        self.streak_message_box.config(relief="ridge", bd=2, padx=10, pady=5)
 
-    def on_button_hover(self, event):
-        self.start_button.config(bg="#2980b9")
+    def set_background_gradient(self):
+        canvas = Canvas(self.root, width=500, height=450)
+        for i in range(450):
+            r = 255 - int(i / 2)
+            g = int(235 - i / 3)
+            b = 255
+            color = f'#{r:02x}{g:02x}{b:02x}'
+            canvas.create_line(0, i, 500, i, fill=color)
+        canvas.pack(fill="both", expand=True)
+        
+    def create_label_with_shadow(self, text, font, y_offset=0, color="#000000"):
+        shadow = tk.Label(self.root, text=text, font=font, fg=self.shadow_color, bg=self.rank_colors[self.rank])
+        shadow.place(x=25, y=y_offset + 2)  # Offset for shadow effect
+        label = tk.Label(self.root, text=text, font=font, fg=color, bg=self.rank_colors[self.rank])
+        label.place(x=20, y=y_offset)
+        return label
 
-    def on_button_leave(self, event):
-        self.start_button.config(bg="#3498db")
+    def create_colorful_streak_label(self):
+        # Shadow for streak label
+        streak_label_shadow = tk.Label(self.root, text=f"Streak: {self.streak}", font=("Helvetica", 12, "bold"), fg="#888888", bg=self.rank_colors[self.rank])
+        streak_label_shadow.place(x=25, y=320)  # Slight offset for shadow effect
+        
+        # Main streak label with color animation
+        streak_label = tk.Label(self.root, text=f"Streak: {self.streak}", font=("Helvetica", 12, "bold"), fg="orange", bg=self.rank_colors[self.rank])
+        streak_label.place(x=20, y=318)
+        return streak_label_shadow, streak_label
+
+    def update_score(self, is_correct):
+        if is_correct:
+            self.score += 10
+            self.streak += 1
+            if self.streak >= 2:  # Bonus for streaks
+                messagebox.showinfo("Streak!", "You're on fire! 🔥 Streak bonus!")
+                self.score += 5
+                self.show_streak_message("You're on fire! 🔥 Streak bonus!")
+        else:
+            self.streak = 0  # Reset streak if guess is incorrect
+            self.score = max(0, self.score - 5)  # Prevent negative scores
+
+        # Rank progression based on score
+        if self.score >= 50:
+            self.rank = 2
+        if self.score >= 100:
+            self.rank = 3
+
+        # Update UI
+        self.score_label.config(text=f"Score: {self.score}")
+        self.rank_label.config(text=f"Rank: {self.rank}")
+        self.streak_label.config(text=f"Streak: {self.streak}")
+        self.streak_label_shadow.config(text=f"Streak: {self.streak}")
+        self.set_background_gradient()  # Update background based on rank
+
+        # Apply color animation to the streak label
+        self.animate_streak_label()
+
+    def show_streak_message(self, message):
+        self.streak_message_box.config(text=message)
+        self.streak_message_box.config(bg="#ff5733")  # Change background color for a more dynamic look
+        self.streak_message_box.after(2000, lambda: self.streak_message_box.config(text=""))  # Clear after 2 seconds
+
+    def animate_streak_label(self):
+        # Cycle colors for the streak label to create a glowing effect
+        colors = ["#ff5733", "#33ff57", "#3357ff", "#ff33bb", "#ffdd33"]
+        current_color = colors[self.streak % len(colors)]
+        self.streak_label.config(fg=current_color)
+
+        # Schedule the next color change
+        if self.streak > 0:
+            self.root.after(500, self.animate_streak_label)
+
+    def select_location(self):
+        if self.rank == 1:
+            return random.choice(easy_locations)
+        elif self.rank == 2:
+            return random.choice(medium_locations)
+        else:
+            return random.choice(hard_locations)
 
     def start_game(self):
-        # Select a random location
-        self.location = random.choice(locations)
+        # Select location based on rank
+        self.location = self.select_location()
         country = self.location["country"]
-        
-        # Show Google Street View link for exploration
+    
+        # Open Google Maps Street View
         lat, lon = self.location["coordinates"]
         webbrowser.open(f"https://www.google.com/maps/@?api=1&map_action=pano&viewpoint={lat},{lon}")
 
-        # Ask user to guess the country/state
+        # Ask user for a guess
         guess = simpledialog.askstring("Guess the Country/State", "Which country or state is this location in?")
-        
+    
         # Check the guess and give feedback
         if guess is None:
-            return  # User canceled the input
+            return  # User canceled input
         elif guess.strip().lower() == country.lower():
             self.feedback_label.config(text="🎉 Correct! You guessed the right country/state!", fg="#1e8449")
+            self.update_score(is_correct=True)
         else:
             self.feedback_label.config(text=f"❌ Wrong! The correct answer was {country}.", fg="#c0392b")
-
+            self.update_score(is_correct=False)
 
 # Run the Tkinter app
 if __name__ == "__main__":
